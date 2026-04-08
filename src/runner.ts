@@ -9,6 +9,7 @@
 
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { RunnerOptions, RunResult, RunOverrides, RunEvent } from "./types.js";
+import { resolveModel } from "./models.js";
 import { RunStream } from "./stream.js";
 import { EventParser } from "./event-parser.js";
 import { MessageQueue } from "./message-queue.js";
@@ -178,7 +179,7 @@ export class Runner {
     const sdkOptions: Record<string, unknown> = {
       systemPrompt,
       cwd: opts.cwd ?? process.cwd(),
-      model: overrides?.model ?? opts.model,
+      model: resolveModel(overrides?.model ?? opts.model),
       abortController: this.abortCtrl,
       includePartialMessages: true,
       includeHookEvents: true,

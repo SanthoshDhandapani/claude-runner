@@ -280,7 +280,7 @@ interface RunStream extends AsyncIterable<RunEvent> {
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `model` | `string` | `'claude-sonnet-4-6'` | Claude model |
+| `model` | `string` | `'claude-sonnet-4-6'` | Claude model (shorthands supported — see below) |
 | `cwd` | `string` | `process.cwd()` | Working directory |
 | `systemPrompt` | `string \| { preset: 'claude_code' }` | minimal | System prompt |
 | `mcp` | `Record<string, McpConfig \| string>` | `{}` | MCP servers |
@@ -293,6 +293,40 @@ interface RunStream extends AsyncIterable<RunEvent> {
 | `maxBudget` | `number` | — | Max cost in USD |
 | `effort` | `'low' \| 'medium' \| 'high' \| 'max'` | — | Effort level |
 | `sdkOptions` | `object` | — | Pass-through to Agent SDK |
+
+## Models
+
+Use shorthand names or full model IDs:
+
+```typescript
+// Shorthands
+const runner = new Runner({ model: 'opus' });      // claude-opus-4-6
+const runner = new Runner({ model: 'sonnet' });     // claude-sonnet-4-6
+const runner = new Runner({ model: 'haiku' });      // claude-haiku-4-5
+
+// Version-specific shorthands
+const runner = new Runner({ model: 'opus-4.5' });   // claude-opus-4-5-20250918
+const runner = new Runner({ model: 'sonnet-4.5' }); // claude-sonnet-4-5-20250514
+const runner = new Runner({ model: 'opus-4.6' });   // claude-opus-4-6
+const runner = new Runner({ model: 'sonnet-4.6' }); // claude-sonnet-4-6
+
+// Full model IDs also work
+const runner = new Runner({ model: 'claude-opus-4-6' });
+
+// Per-run override
+const result = await runner.run('Quick task', { model: 'haiku' });
+```
+
+| Shorthand | Full Model ID |
+|---|---|
+| `opus` | `claude-opus-4-6` |
+| `opus-4.6` | `claude-opus-4-6` |
+| `opus-4.5` | `claude-opus-4-5-20250918` |
+| `sonnet` | `claude-sonnet-4-6` |
+| `sonnet-4.6` | `claude-sonnet-4-6` |
+| `sonnet-4.5` | `claude-sonnet-4-5-20250514` |
+| `haiku` | `claude-haiku-4-5-20251001` |
+| `haiku-4.5` | `claude-haiku-4-5-20251001` |
 
 ## Runtime Support
 

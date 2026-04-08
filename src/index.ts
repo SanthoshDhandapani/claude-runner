@@ -34,6 +34,9 @@ export { RunStream } from "./stream.js";
 // Tools
 export { defineTool } from "./tools.js";
 
+// Models
+export { resolveModel } from "./models.js";
+
 // Types
 export type {
   RunnerOptions,

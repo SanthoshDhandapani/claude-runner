@@ -1,6 +1,6 @@
 {
   "name": "claude-runner",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The easiest way to build AI agents with Claude. MCP-native, sandbox-first, 5 lines to start.",
   "type": "module",
   "main": "dist/index.js",
