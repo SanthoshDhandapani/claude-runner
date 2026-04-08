@@ -40,7 +40,31 @@ npm install claude-runner
 
 Requires [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code/getting-started) to be installed and authenticated.
 
-## Quick Start
+## CLI
+
+Run agents directly from your terminal:
+
+```bash
+# Simple prompt
+npx claude-runner "Analyze this codebase and suggest improvements"
+
+# Choose model
+npx claude-runner -m opus "Refactor the auth module"
+
+# With MCP servers
+npx claude-runner --mcp github="npx @modelcontextprotocol/server-github" "List open issues"
+
+# Auto-approve all tools (for CI/scripts)
+npx claude-runner -p auto "Fix all failing tests"
+
+# Resume a previous session
+npx claude-runner --resume abc-123-uuid "Now deploy it"
+
+# JSON output (no streaming)
+npx claude-runner --json "What files are in this project?"
+```
+
+## Quick Start (SDK)
 
 ### Simple await
 
