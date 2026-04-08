@@ -1,0 +1,62 @@
+{
+  "name": "claude-runner",
+  "version": "0.1.0",
+  "description": "The easiest way to build AI agents with Claude. MCP-native, sandbox-first, 5 lines to start.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "claude",
+    "agent",
+    "ai",
+    "sdk",
+    "mcp",
+    "sandbox",
+    "e2b",
+    "anthropic",
+    "runner",
+    "coding-agent"
+  ],
+  "author": "Santhosh Dhandapani",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SanthoshDhandapani/claude-runner.git"
+  },
+  "homepage": "https://github.com/SanthoshDhandapani/claude-runner",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.94"
+  },
+  "peerDependencies": {
+    "e2b": ">=1.0.0",
+    "zod": ">=3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "e2b": { "optional": true },
+    "zod": { "optional": true }
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.0"
+  }
+}
