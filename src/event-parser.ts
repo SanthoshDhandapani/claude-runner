@@ -112,6 +112,46 @@ export class EventParser {
         }
       }
 
+      // Subagent task lifecycle
+      if (subtype === "task_started") {
+        events.push({
+          type: "task_start",
+          taskId: (message.task_id as string) ?? "",
+          description: (message.description as string) ?? "",
+        });
+      }
+
+      if (subtype === "task_progress") {
+        const usage = message.usage as Record<string, unknown> | undefined;
+        events.push({
+          type: "task_progress",
+          taskId: (message.task_id as string) ?? "",
+          description: (message.description as string) ?? "",
+          toolName: (message.last_tool_name as string) ?? undefined,
+          summary: (message.summary as string) ?? undefined,
+          usage: usage ? {
+            tokens: (usage.total_tokens as number) ?? 0,
+            tools: (usage.tool_uses as number) ?? 0,
+            durationMs: (usage.duration_ms as number) ?? 0,
+          } : undefined,
+        });
+      }
+
+      if (subtype === "task_notification") {
+        const usage = message.usage as Record<string, unknown> | undefined;
+        events.push({
+          type: "task_done",
+          taskId: (message.task_id as string) ?? "",
+          status: (message.status as string) ?? "completed",
+          summary: (message.summary as string) ?? "",
+          usage: usage ? {
+            tokens: (usage.total_tokens as number) ?? 0,
+            tools: (usage.tool_uses as number) ?? 0,
+            durationMs: (usage.duration_ms as number) ?? 0,
+          } : undefined,
+        });
+      }
+
       // Hook block detection
       if (subtype === "hook_response") {
         const output = (message.output as string) ?? "";
@@ -122,6 +162,23 @@ export class EventParser {
             events.push({ type: "error", message: reason, code: "HOOK_BLOCKED" });
           }
         } catch { /* not JSON */ }
+      }
+    }
+
+    // Tool progress (elapsed time updates for long-running tools)
+    if (type === "tool_progress") {
+      const toolName = (message.tool_name as string) ?? "";
+      const toolUseId = (message.tool_use_id as string) ?? "";
+      const elapsed = (message.elapsed_time_seconds as number) ?? 0;
+      // Emit as task_progress so the UI can show activity
+      if (toolName && elapsed > 0) {
+        events.push({
+          type: "task_progress",
+          taskId: (message.task_id as string) ?? toolUseId,
+          description: `${toolName} running`,
+          toolName,
+          usage: { tokens: 0, tools: 0, durationMs: elapsed * 1000 },
+        });
       }
     }
 

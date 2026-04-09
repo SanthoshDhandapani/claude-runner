@@ -55,6 +55,8 @@ export interface SpawnedProcess {
   exitCode: number | null;
   kill(signal?: string): boolean;
   on(event: "exit" | "error", listener: (...args: unknown[]) => void): void;
+  once(event: "exit" | "error", listener: (...args: unknown[]) => void): void;
+  off(event: "exit" | "error", listener: (...args: unknown[]) => void): void;
 }
 
 export type SpawnFn = (options: SpawnOptions) => SpawnedProcess;
@@ -117,8 +119,81 @@ export interface RunnerOptions {
   effort?: "low" | "medium" | "high" | "max";
   /** Which filesystem settings to load. Default: [] (none). */
   settingSources?: ("user" | "project" | "local")[];
+  /**
+   * Declarative hook declarations — same format as Specwright skill frontmatter.
+   * Resolved into Agent SDK HookCallbackMatcher[] at runtime.
+   *
+   * @example Inline rules
+   * ```typescript
+   * hooks: {
+   *   PreToolUse: [{
+   *     matcher: 'Bash',
+   *     rules: [{ deny: 'rm -rf /', reason: 'Blocked dangerous command' }],
+   *   }],
+   * }
+   * ```
+   *
+   * @example Module reference (requires @specwright/hooks)
+   * ```typescript
+   * hooks: {
+   *   PostToolUse: [{
+   *     matcher: 'Write',
+   *     module: '@specwright/hooks/track-generated-files',
+   *     config: { outputDir: 'src/generated' },
+   *   }],
+   * }
+   * ```
+   *
+   * @example Direct callbacks
+   * ```typescript
+   * hooks: {
+   *   PreToolUse: [{
+   *     matcher: 'Bash',
+   *     callbacks: [async (input) => ({ continue: true })],
+   *   }],
+   * }
+   * ```
+   */
+  hooks?: RunnerHookDeclarations;
   /** Pass-through to Agent SDK Options for anything not covered. */
   sdkOptions?: Record<string, unknown>;
+}
+
+// ─── Hooks ────────────────────────────────────────────────────────────────
+
+/** Declarative hook declarations — maps event names to matcher arrays. */
+export type RunnerHookDeclarations = Partial<Record<string, RunnerHookMatcher[]>>;
+
+/** A single hook matcher entry. */
+export interface RunnerHookMatcher {
+  /** Tool name or pattern to match (e.g., "Bash", "mcp__*"). */
+  matcher?: string;
+  /** Timeout in seconds. */
+  timeout?: number;
+  /** Inline declarative rules (evaluated in order). */
+  rules?: HookRule[];
+  /** Path to a JS module exporting default(config) => HookCallback. */
+  module?: string;
+  /** Config object passed to the module factory. */
+  config?: Record<string, unknown>;
+  /** Direct SDK callback functions (advanced). */
+  callbacks?: Array<(
+    input: Record<string, unknown>,
+    toolUseId: string | undefined,
+    options: { signal: AbortSignal }
+  ) => Promise<Record<string, unknown>>>;
+}
+
+/** A single inline rule for declarative hook matching. */
+export interface HookRule {
+  /** Pattern to deny (blocks the tool call). */
+  deny?: string;
+  /** Pattern to allow (approves the tool call). */
+  allow?: string;
+  /** Context string to inject as additionalContext. */
+  context?: string;
+  /** Human-readable reason for the decision. */
+  reason?: string;
 }
 
 // ─── Run Result ────────────────────────────────────────────────────────────
@@ -152,10 +227,19 @@ export interface RunResult {
 
 // ─── Run Events (Streaming) ────────────────────────────────────────────────
 
+export interface TaskUsage {
+  tokens: number;
+  tools: number;
+  durationMs: number;
+}
+
 export type RunEvent =
   | { type: "text"; text: string }
   | { type: "tool_start"; tool: string; id: string; input?: Record<string, unknown> }
   | { type: "tool_end"; tool: string; id: string; duration: number }
+  | { type: "task_start"; taskId: string; description: string }
+  | { type: "task_progress"; taskId: string; description: string; toolName?: string; summary?: string; usage?: TaskUsage }
+  | { type: "task_done"; taskId: string; status: string; summary: string; usage?: TaskUsage }
   | { type: "session_init"; sessionId: string; model: string; tools: string[] }
   | { type: "mcp_status"; server: string; status: "connected" | "failed" | "needs-auth" }
   | { type: "error"; message: string; code?: string }

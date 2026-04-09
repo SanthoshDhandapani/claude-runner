@@ -1,12 +1,19 @@
 # claude-runner
 
 [![npm version](https://img.shields.io/npm/v/claude-runner.svg)](https://www.npmjs.com/package/claude-runner)
+[![CI](https://github.com/SanthoshDhandapani/claude-runner/actions/workflows/ci.yml/badge.svg)](https://github.com/SanthoshDhandapani/claude-runner/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue.svg)](https://www.typescriptlang.org/)
 
-**The easiest way to build AI agents with Claude.** MCP-native, sandbox-ready, 5 lines to start.
+**The easiest way to build AI agents with Claude.** MCP-native, sandbox-first, 5 lines to start.
 
-Built on the official [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview). One dependency. Zero bloat.
+The official SDK is an engine 🔧 — claude-runner is the car 🚗.
+
+A thin, clean wrapper around the official [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview). One dependency. Zero bloat.
+
+<p align="center">
+  <img src="./assets/demo-1-quickstart.gif" alt="claude-runner CLI demo" width="700" />
+</p>
 
 ```typescript
 import { Runner } from 'claude-runner';
@@ -80,6 +87,10 @@ console.log(`Turns: ${result.turns}`); // Agentic turns
 ```
 
 ### Streaming
+
+<p align="center">
+  <img src="./assets/demo-2-streaming.gif" alt="claude-runner streaming demo" width="700" />
+</p>
 
 ```typescript
 for await (const event of runner.stream('Refactor the auth module')) {
@@ -203,22 +214,47 @@ const runner = new Runner({
 });
 ```
 
-## Sandbox (Coming Soon)
+## Sandbox
 
-Run agents in isolated environments:
+Run agents in isolated Docker containers. Your project is bind-mounted at `/workspace` — all tool calls operate inside the container.
+
+```typescript
+// Docker container — filesystem isolation, no extra deps
+const runner = new Runner({
+  sandbox: 'docker',
+  docker: {
+    image: 'node:22-slim',
+    mount: ['/shared/fixtures'],   // additional read-only mounts
+    network: 'host',               // optional network mode
+  },
+  permissions: 'auto',
+});
+
+const result = await runner.run('Install deps and run the test suite');
+```
 
 ```typescript
 // E2B cloud sandbox
-const runner = new Runner({ sandbox: 'e2b' });
+const runner = new Runner({
+  sandbox: 'e2b',
+  e2b: { apiKey: process.env.E2B_API_KEY },
+});
 
-// Docker container
-const runner = new Runner({ sandbox: 'docker' });
-
-// Custom spawner
+// Custom spawner — bring your own container runtime
 const runner = new Runner({
   sandbox: (options) => myCustomSpawner(options),
 });
 ```
+
+Check Docker availability:
+
+```typescript
+import { getDockerStatus } from 'claude-runner';
+
+const version = getDockerStatus(); // "29.1.3" or null
+```
+
+> **macOS note:** Rancher Desktop only shares `$HOME` by default. Docker Desktop shares `/Users`, `/Volumes`, `/private`, `/tmp`. Ensure your `cwd` is in a shared directory.
 
 ## Subagents
 
@@ -364,7 +400,7 @@ claude-runner is runtime-agnostic. No framework lock-in.
 
 ## How It Works
 
-claude-runner is a thin wrapper (~500 lines) around the official `@anthropic-ai/claude-agent-sdk`. It:
+claude-runner is a thin wrapper (~1,500 lines) around the official `@anthropic-ai/claude-agent-sdk`. It:
 
 1. Normalizes your options into the SDK's 40+ field `Options` object
 2. Starts a `query()` session with MCP servers, permissions, and tools configured
@@ -372,6 +408,25 @@ claude-runner is a thin wrapper (~500 lines) around the official `@anthropic-ai/
 4. Manages session lifecycle (resume, multi-turn, abort)
 
 You get the full power of Claude Code (skills, agents, tools, MCP) through a simple API.
+
+## Examples
+
+Ready-to-run examples in the [`examples/`](./examples) directory:
+
+| Example | Description | Run |
+|---|---|---|
+| **[Code Reviewer](./examples/code-reviewer.js)** | Reviews your codebase for bugs and security issues | `node examples/code-reviewer.js` |
+| **[Test Generator](./examples/test-generator.js)** | Analyzes code and generates tests (multi-turn) | `node examples/test-generator.js` |
+| **[GitHub Bot](./examples/mcp-github-bot.js)** | Analyzes GitHub issues via MCP | `GITHUB_TOKEN=xxx node examples/mcp-github-bot.js` |
+
+## Documentation
+
+- [Getting Started](./docs/getting-started.md) — Your first agent in 5 minutes
+- [Sandbox](./docs/sandbox.md) — Docker container isolation
+- [MCP Integration](./docs/mcp.md) — Connect any MCP server
+- [Sessions](./docs/sessions.md) — Multi-turn, resume, interrupt
+- [Permissions](./docs/permissions.md) — Control what Claude can do
+- [API Reference](./docs/api.md) — Full TypeScript API
 
 ## License
 

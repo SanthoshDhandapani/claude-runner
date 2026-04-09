@@ -8,7 +8,7 @@
  */
 
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import type { RunnerOptions, RunResult, RunOverrides, RunEvent } from "./types.js";
+import type { RunnerOptions, RunResult, RunOverrides, RunEvent, RunnerHookDeclarations, RunnerHookMatcher, HookRule } from "./types.js";
 import { resolveModel } from "./models.js";
 import { RunStream } from "./stream.js";
 import { EventParser } from "./event-parser.js";
@@ -175,6 +175,26 @@ export class Runner {
       baseAllowed.push("mcp__claude-runner-tools__*");
     }
 
+    // Resolve declarative hooks into SDK callbacks
+    let resolvedHooks: Record<string, unknown[]> | undefined;
+    if (opts.hooks && Object.keys(opts.hooks).length > 0) {
+      try {
+        // Try @specwright/hooks first (full resolution with modules support)
+        // eslint-disable-next-line @typescript-eslint/no-implied-eval
+        const dynamicImport = new Function("specifier", "return import(specifier)") as (s: string) => Promise<unknown>;
+        const hooksModule = await dynamicImport("@specwright/hooks") as {
+          resolveSkillHooks: (decl: Record<string, unknown[]>, opts?: { cwd?: string }) => Promise<Record<string, unknown[]>>;
+        };
+        resolvedHooks = await hooksModule.resolveSkillHooks(
+          opts.hooks as Record<string, unknown[]>,
+          { cwd: opts.cwd ?? process.cwd() }
+        );
+      } catch {
+        // Fallback: resolve inline rules + direct callbacks without @specwright/hooks
+        resolvedHooks = resolveHooksInline(opts.hooks);
+      }
+    }
+
     // Build SDK options
     const sdkOptions: Record<string, unknown> = {
       systemPrompt,
@@ -193,12 +213,13 @@ export class Runner {
       ...(opts.maxTurns ? { maxTurns: opts.maxTurns } : {}),
       ...(opts.maxBudget ? { maxBudgetUsd: opts.maxBudget } : {}),
       ...(opts.effort ? { effort: opts.effort } : {}),
-      ...(opts.settingSources ? { settingSources: opts.settingSources } : {}),
+      settingSources: opts.settingSources ?? [],
       ...(opts.agents ? { agents: opts.agents } : {}),
       ...(spawner ? { spawnClaudeCodeProcess: spawner } : {}),
       ...(overrides?.outputFormat ? { outputFormat: overrides.outputFormat } : {}),
       ...(overrides?._resumeSessionId ? { resume: overrides._resumeSessionId } : {}),
       ...(overrides?.signal ? {} : {}), // signal handled via abortController
+      ...(resolvedHooks ? { hooks: resolvedHooks } : {}),
       ...(opts.sdkOptions ?? {}),
     };
 
@@ -244,4 +265,92 @@ export class Runner {
 
     runStream._end();
   }
+}
+
+// ─── Inline hook resolver (no @specwright/hooks dependency needed) ──────
+
+function matchesPattern(value: string, pattern: string): boolean {
+  if (pattern.startsWith("/") && pattern.lastIndexOf("/") > 0) {
+    const lastSlash = pattern.lastIndexOf("/");
+    try {
+      return new RegExp(pattern.slice(1, lastSlash), pattern.slice(lastSlash + 1)).test(value);
+    } catch { /* fall through */ }
+  }
+  if (pattern.includes("*")) {
+    const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
+    return new RegExp(escaped).test(value);
+  }
+  return value.includes(pattern);
+}
+
+function compileRulesCallback(rules: HookRule[]): (
+  input: Record<string, unknown>,
+  toolUseId: string | undefined,
+  opts: { signal: AbortSignal }
+) => Promise<Record<string, unknown>> {
+  return async (input) => {
+    const toolInput = input.tool_input as Record<string, unknown> | undefined;
+    const value = String(toolInput?.command ?? toolInput?.file_path ?? toolInput?.pattern ?? JSON.stringify(toolInput ?? {}));
+
+    for (const rule of rules) {
+      if (rule.deny && matchesPattern(value, rule.deny)) {
+        return { decision: "block", reason: rule.reason ?? `Blocked: ${rule.deny}` };
+      }
+      if (rule.allow && matchesPattern(value, rule.allow)) {
+        return {
+          hookSpecificOutput: {
+            hookEventName: input.hook_event_name ?? "PreToolUse",
+            permissionDecision: "allow",
+            permissionDecisionReason: rule.reason,
+          },
+        };
+      }
+      if (rule.context) {
+        return {
+          hookSpecificOutput: {
+            hookEventName: input.hook_event_name ?? "PreToolUse",
+            additionalContext: rule.context,
+          },
+        };
+      }
+    }
+    return { continue: true };
+  };
+}
+
+/**
+ * Fallback resolver for inline rules + direct callbacks.
+ * Used when @specwright/hooks is not installed.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyHookCallback = (...args: any[]) => Promise<any>;
+
+function resolveHooksInline(
+  declarations: RunnerHookDeclarations
+): Record<string, Array<{ matcher?: string; timeout?: number; hooks: AnyHookCallback[] }>> {
+  const resolved: Record<string, Array<{ matcher?: string; timeout?: number; hooks: AnyHookCallback[] }>> = {};
+
+  for (const [event, matchers] of Object.entries(declarations)) {
+    if (!matchers || matchers.length === 0) continue;
+
+    resolved[event] = matchers.map((m: RunnerHookMatcher) => {
+      const hooks: AnyHookCallback[] = [];
+
+      if (m.rules && m.rules.length > 0) {
+        hooks.push(compileRulesCallback(m.rules) as AnyHookCallback);
+      }
+      if (m.callbacks) {
+        hooks.push(...(m.callbacks as AnyHookCallback[]));
+      }
+      // module references require @specwright/hooks — skip silently
+
+      return {
+        matcher: m.matcher,
+        timeout: m.timeout,
+        hooks,
+      };
+    });
+  }
+
+  return resolved;
 }

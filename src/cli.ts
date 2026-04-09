@@ -148,6 +148,8 @@ async function main(): Promise<void> {
         process.stderr.write(`\x1b[36m(${(event.duration / 1000).toFixed(1)}s)\x1b[0m\n`);
         break;
       case "mcp_status":
+        // Only show MCP servers the user explicitly configured (not account-level ones)
+        if (event.server.startsWith("claude.ai") || event.server.startsWith("claude_ai")) break;
         if (event.status === "connected") {
           process.stderr.write(`\x1b[32m✓ ${event.server}\x1b[0m\n`);
         } else if (event.status === "failed") {

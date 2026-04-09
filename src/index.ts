@@ -37,6 +37,9 @@ export { defineTool } from "./tools.js";
 // Models
 export { resolveModel } from "./models.js";
 
+// Sandbox
+export { getDockerStatus } from "./sandbox/index.js";
+
 // Types
 export type {
   RunnerOptions,
@@ -46,6 +49,9 @@ export type {
   McpConfig,
   PermissionRequest,
   PermissionPolicy,
+  RunnerHookDeclarations,
+  RunnerHookMatcher,
+  HookRule,
   ToolCallSummary,
   ToolDefinition,
   ToolResult,
