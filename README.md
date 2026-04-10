@@ -42,10 +42,15 @@ The official `@anthropic-ai/claude-agent-sdk` is powerful but low-level — 40+ 
 ## Install
 
 ```bash
+# Agent Mode — full Claude Code power (needs CLI)
 npm install claude-runner
+
+# API Mode — no CLI needed, deploys anywhere (needs API key)
+npm install claude-runner @anthropic-ai/sdk
 ```
 
-Requires [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code/getting-started) to be installed and authenticated.
+**Agent Mode** requires [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code/getting-started) installed and authenticated.
+**API Mode** requires an [Anthropic API key](https://console.anthropic.com/settings/keys) — no CLI needed.
 
 ## CLI
 
@@ -213,6 +218,42 @@ const runner = new Runner({
   onPermission: async (req) => confirm(`Allow ${req.tool}?`),
 });
 ```
+
+## API Mode (No CLI Required)
+
+Deploy Claude agents anywhere — Lambda, Cloud Run, Vercel, any serverless platform. Just an API key.
+
+```typescript
+const runner = new Runner({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  model: 'sonnet',
+});
+
+const result = await runner.run('Summarize this data');
+```
+
+Or from the CLI:
+
+```bash
+ANTHROPIC_API_KEY=sk-xxx npx claude-runner "Summarize this data"
+npx claude-runner --api-key sk-xxx "Summarize this data"
+```
+
+### Agent Mode vs API Mode
+
+| | Agent Mode (default) | API Mode |
+|---|---|---|
+| **Requires** | Claude CLI installed | API key only |
+| **Built-in tools** | Read, Write, Bash, Edit | Bring your own |
+| **MCP servers** | Yes | Coming soon |
+| **Sandbox** | Docker, E2B | No |
+| **Hooks & skills** | Yes | No |
+| **Deploys to** | Local, CI with CLI | Anywhere |
+| **Cost model** | Claude subscription | Pay-per-token |
+
+**When to use which:**
+- **Agent Mode** — local dev, CI/CD where CLI is available, tasks that need file access and terminal
+- **API Mode** — cloud functions, serverless, SaaS backends, anywhere you can't install the CLI
 
 ## Sandbox
 
@@ -422,6 +463,8 @@ Ready-to-run examples in the [`examples/`](./examples) directory:
 ## Documentation
 
 - [Getting Started](./docs/getting-started.md) — Your first agent in 5 minutes
+- [API Mode](./docs/api-mode.md) — Deploy anywhere with just an API key
+- [Use Cases](./docs/use-cases.md) — Real-world examples (chatbots, pipelines, CI/CD)
 - [Sandbox](./docs/sandbox.md) — Docker container isolation
 - [MCP Integration](./docs/mcp.md) — Connect any MCP server
 - [Sessions](./docs/sessions.md) — Multi-turn, resume, interrupt

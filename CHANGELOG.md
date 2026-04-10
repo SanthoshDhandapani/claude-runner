@@ -1,6 +1,23 @@
 # Changelog
 
-## 0.3.0 (unreleased)
+## 0.4.1
+
+### Fixed
+- README: clarified Install section with both Agent Mode and API Mode instructions
+
+## 0.4.0
+
+### Added
+- **API Mode** — run agents with just an `ANTHROPIC_API_KEY`, no CLI needed
+- **`ApiRunner`** — Anthropic Messages API runner with agentic tool loop
+- **`--api-key` CLI flag** — use API Mode from the command line
+- **Auto-detect** `ANTHROPIC_API_KEY` env var in CLI
+- **`@anthropic-ai/sdk`** as optional peer dependency
+- **Cost estimation** — approximate cost tracking based on public pricing
+- **docs/api-mode.md** — API Mode guide with deployment examples
+- **docs/use-cases.md** — real-world use cases (chatbots, pipelines, CI/CD, webhooks)
+
+## 0.3.0 (2026-04-10)
 
 ### Added
 - **Docker sandbox** — run agents inside Docker containers with `sandbox: 'docker'`

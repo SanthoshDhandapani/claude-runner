@@ -86,6 +86,14 @@ export type ToolDefinition = any;
 // ─── Runner Options ────────────────────────────────────────────────────────
 
 export interface RunnerOptions {
+  /**
+   * Anthropic API key. When set, uses the raw Messages API (API Mode) instead
+   * of the Claude Agent SDK (Agent Mode). No CLI install needed — deploys anywhere.
+   *
+   * Agent Mode: full Claude Code power (Read, Write, Bash, MCP, sandbox, hooks)
+   * API Mode: lightweight, bring your own tools via defineTool() or MCP
+   */
+  apiKey?: string;
   /** Model to use. Default: 'claude-sonnet-4-6'. */
   model?: string;
   /** Working directory. Default: process.cwd(). */

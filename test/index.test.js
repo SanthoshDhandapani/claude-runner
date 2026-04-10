@@ -471,6 +471,32 @@ describe("Runner", () => {
   });
 });
 
+// ─── API Mode ────────────────────────────────────────────────────────────────
+
+describe("API Mode", () => {
+  it("accepts apiKey in RunnerOptions", () => {
+    const runner = new Runner({
+      apiKey: "sk-test-key",
+      model: "sonnet",
+    });
+    assert.equal(runner.lastSessionId, null);
+  });
+
+  it("ApiRunner is exported", async () => {
+    const mod = await import("../dist/index.js");
+    assert.equal(typeof mod.ApiRunner, "function");
+  });
+
+  it("ApiRunner constructor accepts options with apiKey", async () => {
+    const { ApiRunner } = await import("../dist/api-runner.js");
+    const runner = new ApiRunner({
+      apiKey: "sk-test-key",
+      model: "sonnet",
+    });
+    assert.ok(runner);
+  });
+});
+
 // ─── Sandbox ─────────────────────────────────────────────────────────────────
 
 describe("sandbox", () => {

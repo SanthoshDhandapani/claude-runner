@@ -30,6 +30,7 @@
 // Core
 export { Runner } from "./runner.js";
 export { RunStream } from "./stream.js";
+export { ApiRunner } from "./api-runner.js";
 
 // Tools
 export { defineTool } from "./tools.js";

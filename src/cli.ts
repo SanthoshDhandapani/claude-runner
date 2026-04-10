@@ -31,6 +31,7 @@ Options:
   --system <prompt>          Custom system prompt
   --max-turns <n>            Max agentic turns
   --max-budget <usd>         Max cost in USD
+  --api-key <key>            Use API Mode (no CLI needed). Or set ANTHROPIC_API_KEY env var
   --resume <sessionId>       Resume a previous session
   --json                     Output result as JSON (no streaming)
   --help, -h                 Show this help
@@ -84,6 +85,8 @@ function parseArgs(args: string[]): {
       options.maxTurns = parseInt(args[++i] ?? "0", 10);
     } else if (arg === "--max-budget") {
       options.maxBudget = parseFloat(args[++i] ?? "0");
+    } else if (arg === "--api-key") {
+      options.apiKey = args[++i];
     } else if (arg === "--resume") {
       resumeSessionId = args[++i];
     } else if (arg === "--json") {
@@ -100,6 +103,11 @@ function parseArgs(args: string[]): {
 
   if (!options.permissions) {
     options.permissions = "prompt";
+  }
+
+  // Auto-detect API key from environment
+  if (!options.apiKey && process.env.ANTHROPIC_API_KEY) {
+    options.apiKey = process.env.ANTHROPIC_API_KEY;
   }
 
   return { prompt, options, resumeSessionId, json };

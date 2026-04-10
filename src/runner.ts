@@ -17,6 +17,7 @@ import { normalizeMcpConfig, buildMcpAllowedTools } from "./mcp.js";
 import { buildCanUseTool } from "./permissions.js";
 import { createSpawner } from "./sandbox/index.js";
 import { isRunnerTool } from "./tools.js";
+import { ApiRunner } from "./api-runner.js";
 
 export class Runner {
   private options: RunnerOptions;
@@ -120,6 +121,21 @@ export class Runner {
     runStream: RunStream
   ): Promise<void> {
     const opts = this.options;
+
+    // API Mode: use raw Anthropic Messages API when apiKey is provided
+    if (opts.apiKey) {
+      const apiRunner = new ApiRunner(opts);
+      runStream._wire({
+        abort: () => apiRunner.abort(),
+        interrupt: async () => apiRunner.abort(),
+        messageQueue: null,
+      });
+      await apiRunner.startQuery(prompt, runStream);
+      runStream._end();
+      return;
+    }
+
+    // Agent Mode: use Claude Agent SDK (requires CLI)
     this.abortCtrl = new AbortController();
     this.messageQueue = new MessageQueue();
 
