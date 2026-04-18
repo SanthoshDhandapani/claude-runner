@@ -223,8 +223,9 @@ export class Runner {
       allowedTools: baseAllowed,
       canUseTool,
       ...(isAuto ? {
-        permissionMode: "bypassPermissions",
-        allowDangerouslySkipPermissions: true,
+        // SDK ≥0.2.97 provides a model-classifier based 'auto' permission mode
+        // — safer than blind bypass, judges each tool call dynamically.
+        permissionMode: "auto",
       } : {}),
       ...(opts.maxTurns ? { maxTurns: opts.maxTurns } : {}),
       ...(opts.maxBudget ? { maxBudgetUsd: opts.maxBudget } : {}),

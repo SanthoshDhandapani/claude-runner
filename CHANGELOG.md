@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0
+
+### Changed
+- **`permissions: 'auto'` now uses the SDK's model-classifier permission mode** instead of `bypassPermissions + allowDangerouslySkipPermissions`. The SDK (`@anthropic-ai/claude-agent-sdk@0.2.97+`) exposes a new `'auto'` mode where a smaller model judges each tool call dynamically — far safer than blanket bypass.
+- No public API change: `new Runner({ permissions: 'auto' })` still does what you expect, just without the "dangerous" flag under the hood.
+
+### Security
+- Removed reliance on `allowDangerouslySkipPermissions: true` for the `auto` path. Unexpected `Bash(rm *)`, unknown MCP tool calls, or network requests to unfamiliar hosts are now classifier-evaluated instead of blindly allowed.
+
 ## 0.4.1
 
 ### Fixed
