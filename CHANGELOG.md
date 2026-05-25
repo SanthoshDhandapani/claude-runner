@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.1
+
+### Added
+- **Tool input streaming** — `tool_start` events now include the fully-parsed `input` object once the SDK finishes streaming `input_json_delta` chunks. Downstream consumers no longer need to assemble the input themselves from raw deltas.
+
+### Changed
+- `tool_start` event emission is now deferred to `content_block_stop` instead of `content_block_start` — guarantees `input` is complete by the time the event is dispatched. Existing consumers that ignore `input` see no behavioural change; the event still fires once per tool call with `tool` and `id` populated.
+- Bumped `@anthropic-ai/claude-agent-sdk` from `^0.3.0` to `^0.3.150` — pulls in the latest SDK fixes and up-to-date model classifier behaviour for `permissions: 'auto'`.
+
 ## 0.5.0
 
 ### Changed

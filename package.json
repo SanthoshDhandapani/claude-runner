@@ -1,6 +1,6 @@
 {
   "name": "claude-runner",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "The easiest way to build AI agents with Claude. MCP-native, sandbox-first, 5 lines to start.",
   "type": "module",
   "main": "dist/index.js",
@@ -49,7 +49,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.3.0"
+    "@anthropic-ai/claude-agent-sdk": "^0.3.150"
   },
   "peerDependencies": {
     "@anthropic-ai/sdk": ">=0.30.0",
