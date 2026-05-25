@@ -15,6 +15,8 @@ export class EventParser {
   private fullText: string = "";
   private toolTimings = new Map<string, { tool: string; startMs: number }>();
   private toolCalls: ToolCallSummary[] = [];
+  // Track in-progress tool inputs: block index → { id, tool, accumulated JSON }
+  private inputAccumulator = new Map<number, { id: string; tool: string; json: string }>();
 
   /** Parse an SDK message into zero or more RunEvents. */
   parse(message: Record<string, unknown>): RunEvent[] {
@@ -35,16 +37,37 @@ export class EventParser {
             events.push({ type: "text", text });
           }
         }
+        // Accumulate tool input JSON chunks
+        if (delta?.type === "input_json_delta") {
+          const partial = (delta.partial_json as string) ?? "";
+          const index = (event.index as number) ?? -1;
+          const acc = this.inputAccumulator.get(index);
+          if (acc && partial) acc.json += partial;
+        }
       }
 
-      // Tool call started
+      // Tool call started — register the accumulator but defer tool_start until input is complete
       if (eventType === "content_block_start") {
         const block = event.content_block as Record<string, unknown>;
         if (block?.type === "tool_use") {
           const id = (block.id as string) ?? "";
           const tool = (block.name as string) ?? "unknown";
+          const index = (event.index as number) ?? -1;
           this.toolTimings.set(id, { tool, startMs: Date.now() });
-          events.push({ type: "tool_start", tool, id });
+          this.inputAccumulator.set(index, { id, tool, json: "" });
+          // tool_start emitted at content_block_stop once input is fully assembled
+        }
+      }
+
+      // Tool input fully streamed — emit tool_start with parsed input
+      if (eventType === "content_block_stop") {
+        const index = (event.index as number) ?? -1;
+        const acc = this.inputAccumulator.get(index);
+        if (acc) {
+          let input: Record<string, unknown> = {};
+          try { input = JSON.parse(acc.json); } catch { /* empty input */ }
+          events.push({ type: "tool_start", tool: acc.tool, id: acc.id, input });
+          this.inputAccumulator.delete(index);
         }
       }
     }
